@@ -1,16 +1,17 @@
 import { useEffect, useState } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './lib/supabase'
+import { AuthForm } from './AuthForm'
 import './App.css'
 
 function App() {
   const [session, setSession] = useState<Session | null>(null)
-  const [status, setStatus] = useState('Checking connection…')
+  const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data, error }) => {
-      setStatus(error ? `Error: ${error.message}` : 'Connected to Supabase')
+    supabase.auth.getSession().then(({ data }) => {
       setSession(data.session)
+      setLoading(false)
     })
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
@@ -19,11 +20,19 @@ function App() {
     return () => subscription.unsubscribe()
   }, [])
 
+  if (loading) return <main><p>Loading…</p></main>
+
   return (
     <main>
       <h1>noomeroo</h1>
-      <p>{status}</p>
-      <p>{session ? `Signed in as ${session.user.email}` : 'Not signed in'}</p>
+      {session ? (
+        <section className="signed-in">
+          <p>Signed in as <strong>{session.user.email}</strong></p>
+          <button onClick={() => supabase.auth.signOut()}>Sign out</button>
+        </section>
+      ) : (
+        <AuthForm />
+      )}
     </main>
   )
 }
